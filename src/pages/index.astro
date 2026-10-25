@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadGraph, ko } from '../lib/data';
+import { u, ideaUrl, sourceUrl } from '../lib/url';
+
+const g = await loadGraph();
+
+const candidates = g.ideas
+  .filter((i) => g.evidenceCount(i) >= 3 && i.data.status !== '글로 씀')
+  .sort((a, b) => g.evidenceCount(b) - g.evidenceCount(a) || ko(a.data.question, b.data.question));
+
+const noEvidence = g.ideas
+  .filter((i) => g.evidenceCount(i) === 0)
+  .sort((a, b) => ko(a.data.question, b.data.question));
+
+const topSources = [...g.sources]
+  .map((s) => ({ s, ex: g.excerptsBySource.get(s.id)?.length ?? 0, ideas: g.ideasBySource.get(s.id)?.length ?? 0 }))
+  .filter((x) => x.ex > 0)
+  .sort((a, b) => b.ideas - a.ideas || b.ex - a.ex || ko(a.s.data.title, b.s.data.title))
+  .slice(0, 7);
+
+const withClaim = g.ideas.filter((i) => i.data.claim.trim().length > 0).length;
+---
+
+<Base>
+  <h1>읽은 책에서 난 생각을 모아, 글의 재료로 만드는 곳.</h1>
+  <p class="lede">책 한 권은 <b>자료</b>, 거기서 뽑은 구절은 <b>인용</b>, 인용을 보고 떠오른 질문은 <b>생각</b>, 생각을 엮어 쓴 것이 <b>글</b>입니다.</p>
+
+  <div class="stats">
+    <a class="stat" href={u('sources/')}><b>{g.sources.length}</b><span>자료</span></a>
+    <a class="stat" href={u('excerpts/')}><b>{g.excerpts.length}</b><span>인용</span></a>
+    <a class="stat" href={u('ideas/')}><b>{g.ideas.length}</b><span>생각</span></a>
+    <a class="stat" href={u('writings/')}><b>{g.writings.length}</b><span>글</span></a>
+  </div>
+  <p class="small faint">생각 {g.ideas.length}개 중 한 줄 주장이 적힌 것 {withClaim}개.</p>
+
+  <h2>영역</h2>
+  <ul class="chips">
+    {g.areas.map(([a, n]) => <li><a href={u(`ideas/#${encodeURIComponent(a)}`)}>{a} <span class="faint">{n}</span></a></li>)}
+  </ul>
+
+  <h2>글감 후보 <span class="badge">근거 3개 이상</span></h2>
+  {
+    candidates.length === 0 ? (
+      <p class="empty">아직 없습니다.</p>
+    ) : (
+      <ul class="list">
+        {candidates.map((i) => (
+          <li>
+            <a class="title" href={ideaUrl(i.id)}>{i.data.question}</a>
+            {i.data.claim && <p class="claim">{i.data.claim}</p>}
+            <div class="meta">
+              <span class="badge accent">근거 {g.evidenceCount(i)}</span>
+              <span class="badge">{i.data.status}</span>
+              {i.data.areas.map((a) => <span>{a}</span>)}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <h2>가장 많은 생각을 낳은 자료</h2>
+  <ul class="list">
+    {
+      topSources.map(({ s, ex, ideas }) => (
+        <li>
+          <a class="title" href={sourceUrl(s.id)}>{s.data.title}</a>
+          <span class="muted small"> {s.data.authors.join(', ')}</span>
+          <div class="meta">
+            <span class="badge accent">생각 {ideas}</span>
+            <span class="badge">인용 {ex}</span>
+            <span class="badge">{s.data.status}</span>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+
+  {
+    noEvidence.length > 0 && (
+      <>
+        <h2>근거가 아직 없는 생각 <span class="badge">읽을 책을 고르는 기준</span></h2>
+        <ul class="list">
+          {noEvidence.map((i) => (
+            <li>
+              <a class="title" href={ideaUrl(i.id)}>{i.data.question}</a>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+</Base>

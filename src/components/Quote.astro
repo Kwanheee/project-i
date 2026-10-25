@@ -1,0 +1,42 @@
+---
+import { render } from 'astro:content';
+import { cite, type Excerpt, type Idea, type Source } from '../lib/data';
+import { excerptUrl, ideaUrl, sourceUrl } from '../lib/url';
+
+interface Props {
+  excerpt: Excerpt;
+  source?: Source;
+  ideas?: Idea[];
+  showSource?: boolean;
+  showIdeas?: boolean;
+  linkSelf?: boolean;
+}
+const { excerpt, source, ideas = [], showSource = true, showIdeas = false, linkSelf = true } = Astro.props;
+const { Content } = await render(excerpt);
+---
+
+<blockquote class="quote" id={excerpt.id}>
+  <Content />
+  {
+    (showSource || linkSelf) && (
+      <div class="src">
+        {showSource && source && <a href={sourceUrl(source.id)}>— {cite(source)}</a>}
+        {excerpt.data.location && <span>{excerpt.data.location}</span>}
+        {linkSelf && (
+          <a href={excerptUrl(excerpt.id)} class="faint">
+            #
+          </a>
+        )}
+      </div>
+    )
+  }
+  {excerpt.data.note && <div class="note">{excerpt.data.note}</div>}
+  {
+    showIdeas && ideas.length > 0 && (
+      <div class="src">
+        <span class="faint">→</span>
+        {ideas.map((i) => <a href={ideaUrl(i.id)}>{i.data.question}</a>)}
+      </div>
+    )
+  }
+</blockquote>

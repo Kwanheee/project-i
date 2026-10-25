@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Quote from '../../components/Quote.astro';
+import { loadGraph, excerptPreview, type Excerpt } from '../../lib/data';
+import { u, ideaUrl } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const excerpts = await getCollection('excerpts');
+  return excerpts.map((entry) => ({ params: { id: entry.id }, props: { entry } }));
+}
+
+interface Props {
+  entry: Excerpt;
+}
+const { entry } = Astro.props;
+const g = await loadGraph();
+const source = g.sourceById.get(entry.data.source.id);
+const ideas = g.ideasByExcerpt.get(entry.id) ?? [];
+---
+
+<Base title={excerptPreview(entry, 60)}>
+  <a class="back" href={u('excerpts/')}>← 인용</a>
+  <h1 class="muted small" style="font-weight: 500">{source?.data.title}</h1>
+  <Quote excerpt={entry} source={source} linkSelf={false} />
+
+  <h2>이 인용이 근거가 된 생각 <span class="badge">{ideas.length}</span></h2>
+  {
+    ideas.length === 0 ? (
+      <p class="empty">아직 연결된 생각이 없습니다.</p>
+    ) : (
+      <ul class="list">
+        {ideas.map((i) => (
+          <li>
+            <a class="title" href={ideaUrl(i.id)}>{i.data.question}</a>
+            <div class="meta">
+              <span class="badge accent">근거 {g.evidenceCount(i)}</span>
+              {i.data.areas.map((a) => <span>{a}</span>)}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Base>

@@ -1,0 +1,62 @@
+---
+import Base from '../../layouts/Base.astro';
+import { loadGraph, ko } from '../../lib/data';
+import { ideaUrl } from '../../lib/url';
+
+const g = await loadGraph();
+const sorted = [...g.ideas].sort((a, b) => g.evidenceCount(b) - g.evidenceCount(a) || ko(a.data.question, b.data.question));
+const byArea = g.areas.map(([area, n]) => ({ area, n, items: sorted.filter((i) => i.data.areas.includes(area)) }));
+const noArea = sorted.filter((i) => i.data.areas.length === 0);
+---
+
+<Base title="생각">
+  <h1>생각</h1>
+  <p class="lede">질문 하나가 생각 하나입니다. 한 생각은 여러 영역에 동시에 속할 수 있습니다. 총 {g.ideas.length}개.</p>
+
+  <div class="section-nav chips">
+    <a href="#all">전체 {g.ideas.length}</a>
+    {byArea.map(({ area, n }) => <a href={`#${encodeURIComponent(area)}`}>{area} {n}</a>)}
+  </div>
+
+  {
+    byArea.map(({ area, n, items }) => (
+      <section id={area}>
+        <h2>
+          {area} <span class="badge">{n}</span>
+        </h2>
+        <ul class="list">
+          {items.map((i) => (
+            <li>
+              <a class="title" href={ideaUrl(i.id)}>{i.data.question}</a>
+              {i.data.claim && <p class="claim">{i.data.claim}</p>}
+              <div class="meta">
+                <span class="badge accent">근거 {g.evidenceCount(i)}</span>
+                <span class="badge">{i.data.status}</span>
+                {i.data.areas.filter((a) => a !== area).map((a) => <span>{a}</span>)}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+
+  <section id="all">
+    <h2>전체 <span class="badge">{g.ideas.length}</span></h2>
+    <ul class="list">
+      {
+        sorted.map((i) => (
+          <li>
+            <a class="title" href={ideaUrl(i.id)}>{i.data.question}</a>
+            <div class="meta">
+              <span class="badge accent">근거 {g.evidenceCount(i)}</span>
+              <span class="badge">{i.data.status}</span>
+              {i.data.areas.map((a) => <span>{a}</span>)}
+            </div>
+          </li>
+        ))
+      }
+      {noArea.map((i) => <li><a class="title" href={ideaUrl(i.id)}>{i.data.question}</a></li>)}
+    </ul>
+  </section>
+</Base>

@@ -1,0 +1,48 @@
+---
+import Base from '../../layouts/Base.astro';
+import { loadGraph, ko, excerptPreview } from '../../lib/data';
+import { sourceUrl, excerptUrl, ideaUrl } from '../../lib/url';
+
+const g = await loadGraph();
+const groups = [...g.excerptsBySource.entries()]
+  .map(([sid, list]) => ({ s: g.sourceById.get(sid)!, list }))
+  .filter((x) => x.s)
+  .sort((a, b) => b.list.length - a.list.length || ko(a.s.data.title, b.s.data.title));
+---
+
+<Base title="인용">
+  <h1>인용</h1>
+  <p class="lede">자료에서 뽑은 구절 하나가 한 항목입니다. 한 인용은 여러 생각의 근거가 될 수 있습니다. 총 {g.excerpts.length}개.</p>
+
+  <div class="section-nav chips">
+    {groups.map(({ s, list }) => <a href={`#${s.id}`}>{s.data.title} {list.length}</a>)}
+  </div>
+
+  {
+    groups.map(({ s, list }) => (
+      <section id={s.id}>
+        <h2>
+          <a href={sourceUrl(s.id)}>{s.data.title}</a> <span class="badge">{list.length}</span>
+        </h2>
+        <ul class="list">
+          {list.map((e) => {
+            const ideas = g.ideasByExcerpt.get(e.id) ?? [];
+            return (
+              <li>
+                <a href={excerptUrl(e.id)}>{excerptPreview(e, 120)}</a>
+                {ideas.length > 0 && (
+                  <div class="meta">
+                    <span class="faint">→</span>
+                    {ideas.map((i) => (
+                      <a href={ideaUrl(i.id)}>{i.data.question}</a>
+                    ))}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  }
+</Base>

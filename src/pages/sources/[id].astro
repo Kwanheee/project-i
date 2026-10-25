@@ -1,0 +1,75 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Quote from '../../components/Quote.astro';
+import { loadGraph, type Source } from '../../lib/data';
+import { u, ideaUrl } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const sources = await getCollection('sources');
+  return sources.map((entry) => ({ params: { id: entry.id }, props: { entry } }));
+}
+
+interface Props {
+  entry: Source;
+}
+const { entry } = Astro.props;
+const g = await loadGraph();
+const { Content } = await render(entry);
+const hasBody = (entry.body ?? '').trim().length > 0;
+const excerpts = g.excerptsBySource.get(entry.id) ?? [];
+const ideas = g.ideasBySource.get(entry.id) ?? [];
+const d = entry.data;
+---
+
+<Base title={d.title}>
+  <a class="back" href={u('sources/')}>← 자료</a>
+  <h1>{d.title}</h1>
+  <p class="lede">
+    {d.authors.join(', ')}
+    {d.authorNote && <span class="faint"> · {d.authorNote}</span>}
+  </p>
+
+  <dl class="kv">
+    {d.year && <><dt>연도</dt><dd>{d.year}{d.edition && <span class="muted"> ({d.edition})</span>}</dd></>}
+    <dt>유형</dt><dd>{d.type}</dd>
+    <dt>상태</dt><dd>{d.status}</dd>
+    {d.fields.length > 0 && <><dt>분야</dt><dd>{d.fields.join(', ')}</dd></>}
+    {d.notes && <><dt>메모</dt><dd class="muted">{d.notes}</dd></>}
+  </dl>
+
+  {
+    ideas.length > 0 && (
+      <>
+        <h2>이 자료가 낳은 생각 <span class="badge">{ideas.length}</span></h2>
+        <ul class="chips">
+          {ideas.map((i) => (
+            <li>
+              <a href={ideaUrl(i.id)}>{i.data.question}</a>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
+  <h2>인용 <span class="badge">{excerpts.length}</span></h2>
+  {
+    excerpts.length === 0 ? (
+      <p class="empty">아직 뽑아둔 인용이 없습니다.</p>
+    ) : (
+      excerpts.map((e) => <Quote excerpt={e} showSource={false} showIdeas ideas={g.ideasByExcerpt.get(e.id) ?? []} />)
+    )
+  }
+
+  {
+    hasBody && (
+      <>
+        <h2>요약</h2>
+        <div class="prose">
+          <Content />
+        </div>
+      </>
+    )
+  }
+</Base>

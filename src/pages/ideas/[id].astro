@@ -1,0 +1,107 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Quote from '../../components/Quote.astro';
+import { loadGraph, type Idea } from '../../lib/data';
+import { u, ideaUrl, writingUrl, sourceUrl } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const ideas = await getCollection('ideas');
+  return ideas.map((entry) => ({ params: { id: entry.id }, props: { entry } }));
+}
+
+interface Props {
+  entry: Idea;
+}
+const { entry } = Astro.props;
+const g = await loadGraph();
+const { Content } = await render(entry);
+const hasBody = (entry.body ?? '').trim().length > 0;
+
+const evidence = entry.data.evidence.map((r) => g.excerptById.get(r.id)).filter((e): e is NonNullable<typeof e> => !!e);
+const related = g.relatedByIdea.get(entry.id) ?? [];
+const writings = g.writingsByIdea.get(entry.id) ?? [];
+const sources = g.sourcesByIdea.get(entry.id) ?? [];
+---
+
+<Base title={entry.data.question}>
+  <a class="back" href={u('ideas/')}>← 생각</a>
+  <h1>{entry.data.question}</h1>
+  <div class="meta chips">
+    <span class="badge">{entry.data.status}</span>
+    {entry.data.areas.map((a) => <a href={u(`ideas/#${encodeURIComponent(a)}`)}>{a}</a>)}
+  </div>
+
+  {
+    entry.data.claim ? (
+      <div class="claim-box">{entry.data.claim}</div>
+    ) : (
+      <div class="claim-box empty">아직 내 말로 쓴 한 줄 주장이 없습니다. 인용만 모여 있는 상태입니다.</div>
+    )
+  }
+
+  {
+    hasBody && (
+      <div class="prose">
+        <Content />
+      </div>
+    )
+  }
+
+  <h2>근거 <span class="badge">{evidence.length}</span></h2>
+  {
+    evidence.length === 0 ? (
+      <p class="empty">연결된 인용이 없습니다.</p>
+    ) : (
+      evidence.map((e) => <Quote excerpt={e} source={g.sourceById.get(e.data.source.id)} />)
+    )
+  }
+
+  {
+    sources.length > 0 && (
+      <p class="small muted">
+        출처 자료:{' '}
+        {sources.map((s, i) => (
+          <>
+            {i > 0 && ' · '}
+            <a href={sourceUrl(s.id)}>{s.data.title}</a>
+          </>
+        ))}
+      </p>
+    )
+  }
+
+  {
+    related.length > 0 && (
+      <>
+        <h2>관련 생각</h2>
+        <ul class="list">
+          {related.map((r) => (
+            <li>
+              <a class="title" href={ideaUrl(r.id)}>{r.data.question}</a>
+              <div class="meta">
+                <span class="badge accent">근거 {g.evidenceCount(r)}</span>
+                {r.data.areas.map((a) => <span>{a}</span>)}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
+  {
+    writings.length > 0 && (
+      <>
+        <h2>이 생각이 쓰인 글</h2>
+        <ul class="list">
+          {writings.map((w) => (
+            <li>
+              <a class="title" href={writingUrl(w.id)}>{w.data.title}</a> <span class="badge">{w.data.status}</span>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+</Base>

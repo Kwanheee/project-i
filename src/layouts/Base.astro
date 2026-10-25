@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+import { u } from '../lib/url';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+const site = 'Project I';
+const path = Astro.url.pathname;
+
+const nav = [
+  { href: '', label: '홈' },
+  { href: 'ideas/', label: '생각' },
+  { href: 'sources/', label: '자료' },
+  { href: 'excerpts/', label: '인용' },
+  { href: 'writings/', label: '글' },
+];
+const isActive = (href: string) => (href === '' ? path === u('') : path.startsWith(u(href)));
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · ${site}` : `${site} · 읽은 책, 거기서 난 생각`}</title>
+    <meta name="description" content={description ?? '읽은 책에서 뽑은 인용과 거기서 난 생각을 모아 글의 재료로 삼는 곳.'} />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%238a5a2b'/%3E%3Ctext x='16' y='22' font-size='18' font-family='Georgia,serif' font-weight='700' fill='white' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href={u('')}>Project I</a>
+        <nav>
+          {nav.map((n) => <a href={u(n.href)} class:list={{ active: isActive(n.href) }}>{n.label}</a>)}
+        </nav>
+      </div>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="wrap">읽은 책 → 인용 → 생각 → 글. 마크다운 파일로 쓰고 Astro로 만든 사이트.</footer>
+  </body>
+</html>

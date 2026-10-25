@@ -1,0 +1,52 @@
+---
+import Base from '../../layouts/Base.astro';
+import { loadGraph, ko } from '../../lib/data';
+import { sourceUrl } from '../../lib/url';
+
+const g = await loadGraph();
+const rows = g.sources.map((s) => ({
+  s,
+  ex: g.excerptsBySource.get(s.id)?.length ?? 0,
+  ideas: g.ideasBySource.get(s.id)?.length ?? 0,
+}));
+const order = ['읽는 중', '완독', '인용만 있음', '읽을 예정'] as const;
+const groups = order
+  .map((status) => ({
+    status,
+    items: rows.filter((r) => r.s.data.status === status).sort((a, b) => b.ideas - a.ideas || b.ex - a.ex || ko(a.s.data.title, b.s.data.title)),
+  }))
+  .filter((gr) => gr.items.length > 0);
+---
+
+<Base title="자료">
+  <h1>자료</h1>
+  <p class="lede">책 한 권이 한 항목입니다. 본문에는 챕터 요약을, 인용은 따로 뽑아 생각과 연결합니다. 총 {g.sources.length}개.</p>
+
+  {
+    groups.map(({ status, items }) => (
+      <section>
+        <h2>
+          {status} <span class="badge">{items.length}</span>
+        </h2>
+        <ul class="list">
+          {items.map(({ s, ex, ideas }) => (
+            <li>
+              <a class="title" href={sourceUrl(s.id)}>{s.data.title}</a>
+              <span class="muted small">
+                {' '}
+                {s.data.authors.join(', ')}
+                {s.data.year ? ` · ${s.data.year}` : ''}
+              </span>
+              <div class="meta">
+                <span class="badge">{s.data.type}</span>
+                {ideas > 0 && <span class="badge accent">생각 {ideas}</span>}
+                {ex > 0 && <span class="badge">인용 {ex}</span>}
+                {s.data.fields.map((f) => <span>{f}</span>)}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Base>

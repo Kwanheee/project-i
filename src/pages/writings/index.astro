@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import { loadGraph } from '../../lib/data';
+import { writingUrl } from '../../lib/url';
+
+const g = await loadGraph();
+const sorted = [...g.writings].sort((a, b) => (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0));
+const fmt = (d?: Date) => (d ? d.toISOString().slice(0, 10) : '');
+---
+
+<Base title="글">
+  <h1>글</h1>
+  <p class="lede">생각들을 재료로 쓴 글입니다. 본문이 초고이고, 재료가 된 생각이 연결됩니다.</p>
+
+  {
+    sorted.length === 0 ? (
+      <p class="empty">
+        아직 글이 없습니다.
+        <br />
+        <span class="small">content/writings/ 에 마크다운 파일을 추가하면 여기에 나타납니다.</span>
+      </p>
+    ) : (
+      <ul class="list">
+        {sorted.map((w) => (
+          <li>
+            <a class="title" href={writingUrl(w.id)}>{w.data.title}</a>
+            {w.data.summary && <p class="claim">{w.data.summary}</p>}
+            <div class="meta">
+              <span class="badge">{w.data.status}</span>
+              {w.data.date && <span>{fmt(w.data.date)}</span>}
+              {w.data.venue && <span>{w.data.venue}</span>}
+              <span class="badge accent">재료 {w.data.materials.length}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Base>
