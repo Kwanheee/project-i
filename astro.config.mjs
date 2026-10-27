@@ -1,9 +1,8 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 
-// GitHub Pages: https://kwanheee.github.io/project-i/
+// 공개 주소: https://heethinks.com (GitHub Pages + 사용자 도메인, public/CNAME 참고)
 export default defineConfig({
-  site: 'https://kwanheee.github.io',
-  base: '/project-i',
+  site: 'https://heethinks.com',
   trailingSlash: 'ignore',
 });

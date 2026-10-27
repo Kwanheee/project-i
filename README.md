@@ -30,7 +30,8 @@ npm run dev
 ## 배포
 
 `main` 브랜치에 push 하면 GitHub Actions가 빌드해서 GitHub Pages에 올린다.
-설정은 `.github/workflows/deploy.yml`, 주소는 `astro.config.mjs` 의 `site` + `base`.
+공개 주소는 https://heethinks.com (Cloudflare Registrar에서 산 도메인, DNS는 Cloudflare).
+설정은 `.github/workflows/deploy.yml`, 주소는 `astro.config.mjs` 의 `site` 와 `public/CNAME`.
 
 ## 출처
 
